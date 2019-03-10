@@ -1,8 +1,33 @@
 #pragma once
 #include <string>
+#include <cfloat>
+
+struct point {
+    double x;
+    double y;
+    double z;
+};
+
+struct color {
+    unsigned short r;
+    unsigned short g;
+    unsigned short b;
+};
+
+struct data {
+    double intensity;
+    struct point point;
+    struct color color;
+};
 
 struct mydata {
 	// you need to determine how you want to store all your data in this data struct
+    size_t size;
+    struct data *data;
+
+    struct point max;
+    struct point min;
+    struct point centroid;
 };
 
 // read the pts file and allocate all needed memory space here
