@@ -23,7 +23,9 @@ bool readPointCloud(const char *filename, mydata& data) {
 	if (pp == 'D' || pp == 'd') inp >> pp; 
 
 	// you should now allocate enough memory to store all the data...
-    data.data = new struct data [data.size];
+    data.point = new struct point [data.size];
+    data.color = new struct color [data.size];
+    data.intensity = new double [data.size];
 
 	for (size_t i = 0; i < nData; ++i) {
 		double x, y, z;
@@ -32,9 +34,9 @@ bool readPointCloud(const char *filename, mydata& data) {
 		std::getline(inp, rest); 
 
 		// now all the data for a single point is read in x, y, z and rest.  You should store it somewhere...
-        data.data[i].point.x = x;
-        data.data[i].point.y = y;
-        data.data[i].point.z = z;
+        data.point[i].x = x;
+        data.point[i].y = y;
+        data.point[i].z = z;
 
         std::istringstream in(rest);
         double intensity = -1.0;
@@ -42,10 +44,10 @@ bool readPointCloud(const char *filename, mydata& data) {
 
         in >> intensity >> r >> g >> b;
 
-        data.data[i].intensity = intensity;
-        data.data[i].color.r = r;
-        data.data[i].color.g = g;
-        data.data[i].color.b = b;
+        data.intensity[i] = intensity;
+        data.color[i].r = r;
+        data.color[i].g = g;
+        data.color[i].b = b;
 	}
 	inp.close();
 
@@ -54,7 +56,9 @@ bool readPointCloud(const char *filename, mydata& data) {
 
 // task 10 - release allocated memory
 void release(mydata& data) {
-    delete [] data.data;
+    delete [] data.point;
+    delete [] data.color;
+    delete [] data.intensity;
 }
 
 // task 5 - FindAABB
@@ -63,13 +67,13 @@ void findAABB(mydata& data) {
     data.min.x = data.min.y = data.min.z = DBL_MAX;
 
     for (size_t i = 0; i < data.size; i++) {
-        if (data.data[i].point.x > data.max.x) data.max.x = data.data[i].point.x;
-        if (data.data[i].point.y > data.max.y) data.max.y = data.data[i].point.y;
-        if (data.data[i].point.z > data.max.z) data.max.z = data.data[i].point.z;
+        if (data.point[i].x > data.max.x) data.max.x = data.point[i].x;
+        if (data.point[i].y > data.max.y) data.max.y = data.point[i].y;
+        if (data.point[i].z > data.max.z) data.max.z = data.point[i].z;
 
-        if (data.data[i].point.x < data.min.x) data.min.x = data.data[i].point.x;
-        if (data.data[i].point.y < data.min.y) data.min.y = data.data[i].point.y;
-        if (data.data[i].point.z < data.min.z) data.min.z = data.data[i].point.z;
+        if (data.point[i].x < data.min.x) data.min.x = data.point[i].x;
+        if (data.point[i].y < data.min.y) data.min.y = data.point[i].y;
+        if (data.point[i].z < data.min.z) data.min.z = data.point[i].z;
     }
 }
 
@@ -78,9 +82,9 @@ void findCentroid(mydata& data) {
     data.centroid.x = data.centroid.y = data.centroid.z = 0;
 
     for (size_t i = 0; i < data.size; i++) {
-        data.centroid.x += data.data[i].point.x;
-        data.centroid.y += data.data[i].point.y;
-        data.centroid.z += data.data[i].point.z;
+        data.centroid.x += data.point[i].x;
+        data.centroid.y += data.point[i].y;
+        data.centroid.z += data.point[i].z;
     }
 
     data.centroid.x /= data.size;
@@ -93,22 +97,22 @@ void applyTransformation(const double(&M)[4][4], mydata& data) {
     for (size_t i = 0; i < data.size; i++) {
         struct point trans;
 
-        trans.x = data.data[i].point.x * M[0][0] + 
-                  data.data[i].point.y * M[1][0] +
-                  data.data[i].point.z * M[2][0] +
+        trans.x = data.point[i].x * M[0][0] + 
+                  data.point[i].y * M[1][0] +
+                  data.point[i].z * M[2][0] +
                   1.0 * M[3][0];
 
-        trans.y = data.data[i].point.x * M[0][1] +
-                  data.data[i].point.y * M[1][1] +
-                  data.data[i].point.z * M[2][1] +
+        trans.y = data.point[i].x * M[0][1] +
+                  data.point[i].y * M[1][1] +
+                  data.point[i].z * M[2][1] +
                   1.0 * M[3][1];
 
-        trans.z = data.data[i].point.x * M[0][2] +
-                  data.data[i].point.y * M[1][2] +
-                  data.data[i].point.z * M[2][2] +
+        trans.z = data.point[i].x * M[0][2] +
+                  data.point[i].y * M[1][2] +
+                  data.point[i].z * M[2][2] +
                   1.0 * M[3][2];
 
-        data.data[i].point = trans;
+        data.point[i] = trans;
     }
 }
 
@@ -122,12 +126,12 @@ bool writePointCloud(const char *outputFilename, const mydata& data) {
 
     outp << data.size << endl;
     for (size_t i = 0; i < data.size; i++) {
-        outp << data.data[i].point.x << "\t" << data.data[i].point.y << "\t" << data.data[i].point.z;
+        outp << data.point[i].x << "\t" << data.point[i].y << "\t" << data.point[i].z;
         
-        if (data.data[i].intensity != -1.0) outp << "\t" << data.data[i].intensity;
-        if (data.data[i].color.r != -1) outp << "\t" << data.data[i].color.r;
-        if (data.data[i].color.g != -1) outp << "\t" << data.data[i].color.g;
-        if (data.data[i].color.b != -1) outp << "\t" << data.data[i].color.b;
+        if (data.intensity[i] != -1.0) outp << "\t" << data.intensity[i];
+        if (data.color[i].r != -1) outp << "\t" << data.color[i].r;
+        if (data.color[i].g != -1) outp << "\t" << data.color[i].g;
+        if (data.color[i].b != -1) outp << "\t" << data.color[i].b;
 
         outp << endl;
     }
