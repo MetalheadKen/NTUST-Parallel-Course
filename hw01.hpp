@@ -14,16 +14,12 @@ struct color {
     unsigned short b;
 };
 
-struct data {
-    double intensity;
-    struct point point;
-    struct color color;
-};
-
 struct mydata {
 	// you need to determine how you want to store all your data in this data struct
     size_t size;
-    struct data *data;
+    struct point *point;
+    double *intensity;
+    struct color *color;
 
     struct point max;
     struct point min;
