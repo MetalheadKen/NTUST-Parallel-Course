@@ -97,7 +97,7 @@ void applyTransformation(const double(&M)[4][4], mydata& data) {
     for (size_t i = 0; i < data.size; i++) {
         struct point trans;
 
-        trans.x = data.point[i].x * M[0][0] + 
+        trans.x = data.point[i].x * M[0][0] +
                   data.point[i].y * M[1][0] +
                   data.point[i].z * M[2][0] +
                   1.0 * M[3][0];
@@ -118,53 +118,56 @@ void applyTransformation(const double(&M)[4][4], mydata& data) {
 
 // Task 8a - Output transformed point cloud data, returns true if success and false if failure.
 bool writePointCloud(const char *outputFilename, const mydata& data) {
-    ofstream outp(outputFilename);
+    FILE *outp = fopen(outputFilename, "w");
+
     if (!outp) {
        cerr << "\nError opening point cloud data file: " << outputFilename;
        return false;
     }
 
-    outp << data.size << endl;
+    fprintf(outp, "%zu\n", data.size);
     for (size_t i = 0; i < data.size; i++) {
-        outp << data.point[i].x << "\t" << data.point[i].y << "\t" << data.point[i].z;
+        fprintf(outp, "%g\t%g\t%g", data.point[i].x, data.point[i].y, data.point[i].z);
         
-        if (data.intensity[i] != -1.0) outp << "\t" << data.intensity[i];
-        if (data.color[i].r != -1) outp << "\t" << data.color[i].r;
-        if (data.color[i].g != -1) outp << "\t" << data.color[i].g;
-        if (data.color[i].b != -1) outp << "\t" << data.color[i].b;
+        if (data.intensity[i] != -1.0) fprintf(outp, "\t%g", data.intensity[i]);
+        if (data.color[i].r != -1) fprintf(outp, "\t%hu", data.color[i].r);
+        if (data.color[i].g != -1) fprintf(outp, "\t%hu", data.color[i].g);
+        if (data.color[i].b != -1) fprintf(outp, "\t%hu", data.color[i].b);
 
-        outp << endl;
+        fprintf(outp, "\n");
     }
-    outp.close();
+    fclose(outp);
 
 	return true;
 }
 
 // Task 8b - Output centroid of the point-cloud, returns true if success and false if failure.
 bool writeCentroid(const char *filename, const mydata &data) {
-    ofstream outp(filename);
+    FILE *outp = fopen(filename, "w");
+
     if (!outp) {
         cerr << "\nError opening centroid data file: " << filename;
         return false;
     }
 
-    outp << data.centroid.x << "\t" << data.centroid.y << "\t" << data.centroid.z;
-    outp.close();
+    fprintf(outp, "%g\t%g\t%g", data.centroid.x, data.centroid.y, data.centroid.z);
+    fclose(outp);
 
 	return true;
 }
 
 // Task 8c - Output AABB of the point-cloud
 bool writeAABB(const char *filename, const mydata &data) {
-    ofstream outp(filename);
+    FILE *outp = fopen(filename, "w");
+
     if (!outp) {
         cerr << "\nError opening AABB data file: " << filename;
         return false;
     }
 
-    outp << data.min.x << "\t" << data.min.y << "\t" << data.min.z << endl;
-    outp << data.max.x << "\t" << data.max.y << "\t" << data.max.z;
-    outp.close();
+    fprintf(outp, "%.0f\t%.0f\t%.0f\n", data.min.x, data.min.y, data.min.z);
+    fprintf(outp, "%.0f\t%.0f\t%.0f", data.max.x, data.max.y, data.max.z);
+    fclose(outp);
 
 	return true;
 }
