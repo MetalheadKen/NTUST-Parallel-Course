@@ -1,7 +1,7 @@
 all: main.exe
 
 CC=g++
-CFLAGS=-g -Wall -Werror -O0
+CFLAGS=-g -Wall -Werror -O3 -funroll-loops
 VALGRIND=valgrind
 VFLAGS=--leak-check=full --show-leak-kinds=all --trace-children=yes -q
 
@@ -22,6 +22,13 @@ test: main.exe
 	$(VALGRIND) $(VFLAGS) ./main.exe check.pts M1.m check/AABB1.txt check/C1.txt check/o1.pts
 	$(VALGRIND) $(VFLAGS) ./main.exe check.pts M2.m check/AABB2.txt check/C2.txt check/o2.pts
 	$(VALGRIND) $(VFLAGS) ./main.exe check.pts M3.m check/AABB3.txt check/C3.txt check/o3.pts
+
+SHELL := /bin/bash
+LOOPS=10
+PROG=./main.exe Site.pts M1.m check/AABB1.txt check/C1.txt check/o1.pts
+
+loop: main.exe
+	for ((i=1; i <= ${LOOPS}; ++i)) do $(PROG); done
 
 # This cleans up the project
 clean: 
