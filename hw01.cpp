@@ -63,53 +63,67 @@ void release(mydata& data) {
 
 // task 5 - FindAABB
 void findAABB(mydata& data) {
-    data.max.x = data.max.y = data.max.z = DBL_MIN;
-    data.min.x = data.min.y = data.min.z = DBL_MAX;
+    struct point max, min;
+
+    max.x = max.y = max.z = DBL_MIN;
+    min.x = min.y = min.z = DBL_MAX;
 
     for (size_t i = 0; i < data.size; i++) {
-        if (data.point[i].x > data.max.x) data.max.x = data.point[i].x;
-        if (data.point[i].y > data.max.y) data.max.y = data.point[i].y;
-        if (data.point[i].z > data.max.z) data.max.z = data.point[i].z;
+        struct point *ppoint = data.point + i;
 
-        if (data.point[i].x < data.min.x) data.min.x = data.point[i].x;
-        if (data.point[i].y < data.min.y) data.min.y = data.point[i].y;
-        if (data.point[i].z < data.min.z) data.min.z = data.point[i].z;
+        if (ppoint->x > max.x) max.x = ppoint->x;
+        if (ppoint->y > max.y) max.y = ppoint->y;
+        if (ppoint->z > max.z) max.z = ppoint->z;
+
+        if (ppoint->x < min.x) min.x = ppoint->x;
+        if (ppoint->y < min.y) min.y = ppoint->y;
+        if (ppoint->z < min.z) min.z = ppoint->z;
     }
+
+    data.max = max;
+    data.min = min;
 }
 
 // task 6 - Find Centroid
 void findCentroid(mydata& data) {
-    data.centroid.x = data.centroid.y = data.centroid.z = 0;
+    struct point centroid;
+    
+    centroid.x = centroid.y = centroid.z = 0;
 
     for (size_t i = 0; i < data.size; i++) {
-        data.centroid.x += data.point[i].x;
-        data.centroid.y += data.point[i].y;
-        data.centroid.z += data.point[i].z;
+        struct point *ppoint = data.point + i;
+        
+        centroid.x += ppoint->x;
+        centroid.y += ppoint->y;
+        centroid.z += ppoint->z;
     }
 
-    data.centroid.x /= data.size;
-    data.centroid.y /= data.size;
-    data.centroid.z /= data.size;
+    centroid.x /= data.size;
+    centroid.y /= data.size;
+    centroid.z /= data.size;
+
+    data.centroid = centroid;
 }
 
 // Task 7 - Apply coordinate transformation on the point-cloud data
 void applyTransformation(const double(&M)[4][4], mydata& data) {
     for (size_t i = 0; i < data.size; i++) {
         struct point trans;
+        struct point *ppoint = data.point + i;
 
-        trans.x = data.point[i].x * M[0][0] +
-                  data.point[i].y * M[1][0] +
-                  data.point[i].z * M[2][0] +
+        trans.x = ppoint->x * M[0][0] +
+                  ppoint->y * M[1][0] +
+                  ppoint->z * M[2][0] +
                   1.0 * M[3][0];
 
-        trans.y = data.point[i].x * M[0][1] +
-                  data.point[i].y * M[1][1] +
-                  data.point[i].z * M[2][1] +
+        trans.y = ppoint->x * M[0][1] +
+                  ppoint->y * M[1][1] +
+                  ppoint->z * M[2][1] +
                   1.0 * M[3][1];
 
-        trans.z = data.point[i].x * M[0][2] +
-                  data.point[i].y * M[1][2] +
-                  data.point[i].z * M[2][2] +
+        trans.z = ppoint->x * M[0][2] +
+                  ppoint->y * M[1][2] +
+                  ppoint->z * M[2][2] +
                   1.0 * M[3][2];
 
         data.point[i] = trans;
