@@ -1,7 +1,7 @@
 all: main.exe
 
 CC=g++
-CFLAGS=-g -Wall -Werror -O3 -funroll-loops
+CFLAGS=-g -Wall -Werror -O3 -funroll-loops -march=native
 VALGRIND=valgrind
 VFLAGS=--leak-check=full --show-leak-kinds=all --trace-children=yes -q
 
