@@ -1,7 +1,7 @@
 all: main.exe
 
 CC=g++
-CFLAGS=-Wall -g -march=native -O3
+CFLAGS=-Wall -g -march=native
 
 %.exe: %.cpp
 	$(CC) $(CFLAGS) $< -o $@
