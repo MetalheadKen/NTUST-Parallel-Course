@@ -2,6 +2,7 @@
 #include <fstream>
 #include <iostream>
 #include <string>
+#include <algorithm>
 using namespace std;
 
 // Read the original point cloud data
@@ -15,12 +16,14 @@ bool readPointCloud(const char *filename, mydata& data) {
 
 	// your likely want to store the number of points somewhere in your struct
 	inp >> nData;
+    data.size = nData;
 
 	// some pts file has a 'D' character after the number of points...:(
 	char pp = inp.peek(); 
 	if (pp == 'D' || pp == 'd') inp >> pp; 
 
 	// you should now allocate enough memory to store all the data...
+    data.point = new struct point [data.size];
 
 	for (size_t i = 0; i < nData; ++i) {
 		double x, y, z;
@@ -30,6 +33,9 @@ bool readPointCloud(const char *filename, mydata& data) {
 		// if(i==0) cout << "\n" << x << ", " << y << ", " << z << ": " << rest; 
 		// now you have coordinates in x, y, z, and additional information in the string rest.  You need to store them into your data struct...
 		// we are going to discard the additional information in this assignment.
+        data.point[i].x = x;
+        data.point[i].y = y;
+        data.point[i].z = z;
 	}
 	inp.close();
 
@@ -40,64 +46,163 @@ bool readPointCloud(const char *filename, mydata& data) {
 // will be in the region of [-Lx, -Ly, -Lz] - [Lx, Ly, Lz], where Lx = 0.5*(xmax+xmin), Ly=0.5*(ymax+ymin), Lz=0.5*(zmax+zmin)
 // Also, this function returns sqrt( (0.5*(xmax-xmin))**2 + (0.5*(ymax-ymin))**2 + (0.5*(zmax-zmin))**2) ).  This is the maximum possible rho.
 double centerPointCloudToOrigin(mydata &data) {
-	cout << "\nDo not forget to implement centerPointCloudToOrigin! Line " << __LINE__ << "@ " << __FILE__; 
-	return 0.0; 
+    // Get AABB
+    struct point max = { data.point[0].x, data.point[0].y, data.point[0].z };
+    struct point min = { data.point[0].x, data.point[0].y, data.point[0].z };
+
+    for (size_t i = 1; i < data.size; ++i) {
+        struct point &ppoint = data.point[i];
+
+        if (ppoint.x > max.x) max.x = ppoint.x;
+        if (ppoint.y > max.y) max.y = ppoint.y;
+        if (ppoint.z > max.z) max.z = ppoint.z;
+
+        if (ppoint.x < min.x) min.x = ppoint.x;
+        if (ppoint.y < min.y) min.y = ppoint.y;
+        if (ppoint.z < min.z) min.z = ppoint.z;
+    }
+
+    // Center the point-cloud data so that the center of the AABB is at the origin
+    struct point AABB;
+    AABB.x = 0.5 * (min.x + max.x);
+    AABB.y = 0.5 * (min.y + max.y);
+    AABB.z = 0.5 * (min.z + max.z);
+
+    for (size_t i = 0; i < data.size; ++i) {
+        struct point &ppoint = data.point[i];
+        ppoint.x -= AABB.x;
+        ppoint.y -= AABB.y;
+        ppoint.z -= AABB.z;
+    }
+
+    // Get maximum possible rho
+    double max_rho = sqrt(pow(0.5 * (max.x - min.x), 2) + pow(0.5 * (max.y - min.y), 2) + pow(0.5 * (max.z - min.z), 2));
+
+	return max_rho; 
 }
 
 // This function prepare the accumulator struct votes so that it will have sufficient memory for storing all votes.
 void prepareAccumulator(accumulator &votes, const double rho_max, const size_t n_theta, const size_t n_phi, const size_t n_rho) {
-	cout << "\nDo not forget to implement prepareAccumulator! Line " << __LINE__ << "@ " << __FILE__ ; 
+    votes.n_theta = n_theta;
+    votes.n_phi = n_phi;
+    votes.n_rho = n_rho;
+
+    votes.d_theta = M_PI / (double) n_theta;
+    votes.d_phi = M_PI / (2.0 * ((double) n_phi - 1));
+    votes.d_rho = (2.0 * rho_max) / ((double) n_rho - 1);
+
+    votes.rho_max = rho_max;
+
+    size_t ***accum = new size_t **[n_theta]();
+
+    for (size_t i = 0; i < n_theta; i++) {
+        accum[i] = new size_t *[n_phi]();
+        for (size_t j = 0; j < n_phi; j++) {
+            accum[i][j] = new size_t [n_rho]();
+        }
+    }
+    votes.accum = accum;
 }
 
 // This function release the allocated memory for the accumulator votes.
 void releaseAccumulator(accumulator &votes) {
-	cout << "\nDo not forget to implement releaseAccumulator! Line " << __LINE__ << "@ " << __FILE__; 
+    for (size_t i = 0; i < votes.n_theta; i++) {
+        for (size_t j = 0; j < votes.n_phi; j++) {
+            delete [] votes.accum[i][j];
+        }
+        delete [] votes.accum[i];
+    }
+    delete [] votes.accum;
 }
 
 // This function conducts the Hough Transform to cast votes in the rho, theta, phi parametric space.
 void houghTransform(const mydata &data, accumulator &votes) {
-	cout << "\nDo not forget to implement houghTransform! Line " << __LINE__ << "@ " << __FILE__; 
+    double theta, phi, rho;
+
+    for (size_t i = 0; i < votes.n_theta; i++) {
+        theta = (double) i * votes.d_theta;
+        for (size_t j = 0; j < votes.n_phi; j++) {
+            phi = (double) j * votes.d_phi;
+            for (size_t pos = 0; pos < data.size; pos++) {
+                rho = data.point[pos].x * cos(theta) * sin(phi) + 
+                      data.point[pos].y * sin(theta) * sin(phi) + 
+                      data.point[pos].z * cos(phi);
+
+                int k = (int) ((rho + votes.rho_max) / votes.d_rho);
+                votes.accum[i][j][k]++;
+            }
+        }
+    }
+}
+
+static inline bool compare(houghPlane planeA, houghPlane planeB) {
+    return planeA.votes > planeB.votes;
 }
 
 // find votes that are larger than threshold and store its parameters into the results data struct
 void identifyPlaneParameters(const accumulator& votes, const size_t threshold, houghPlanes &results) {
-	cout << "\nDo not forget to implement identifyPlaneParameters! Line " << __LINE__ << "@ " << __FILE__; 
+    for (size_t i = 0; i < votes.n_theta; i++) {
+        for (size_t j = 0; j < votes.n_phi; j++) {
+            for (size_t k = 0; k < votes.n_rho; k++) {
+                if (votes.accum[i][j][k] > threshold) {
+                    houghPlane plane;
+
+                    plane.theta = (double) i * votes.d_theta;
+                    plane.phi = (double) j * votes.d_phi;
+                    plane.rho = (double) k * votes.d_rho - votes.rho_max;
+                    plane.votes = votes.accum[i][j][k];
+
+                    results.planes.push_back(plane);
+                }
+            }
+        }
+    }
+
+    // sort planes vector ordered by votes in descending order
+    sort(results.planes.begin(), results.planes.end(), compare);
 }
 
 // This function de-allocate memory allocated for planes
 void releaseHoughPlanes(houghPlanes &planes) {
-	cout << "\nDo not forget to implement releaseHoughPlanes! Line " << __LINE__ << "@ " << __FILE__; 
-
+    // vector will automatically free allocated memory
 }
 
 // task 10 - release allocated memory for point-cloud data
 void release(mydata& data) {
-	cout << "\nDo not forget to implement release! Line " << __LINE__ << "@ " << __FILE__; 
+    delete [] data.point;
 }
 
 // Task 8a - Output transformed point cloud data
 bool outputPtxFile(const mydata& data, const houghPlanes &results, const accumulator& votes, const char *outputCloudData) {
-	cout << "\nRemeber to complete outputPtxFile! Line " << __LINE__ << "@ " << __FILE__; 
 	ofstream outp(outputCloudData);
 	if (!outp) return false; 
 
 	// Output header of PLY file format
-	outp << "ply\nformat ascii 1.0\nelement vertex " << 8 /* <-- Please replace 8 with the number of points from your data struct ... */
+	outp << "ply\nformat ascii 1.0\nelement vertex " << data.size /* <-- Please replace 8 with the number of points from your data struct ... */
 		<< "\nproperty float x\nproperty float y\nproperty float z"
 		<< "\nproperty uchar red\nproperty uchar green\nproperty uchar blue"
 		<< "\nend_header";
 
-	// The following outputs 8 points with different colors.  Please delete them after you have completed your outputPtxFile....
-	outp << "\n0 0 0 255 0 0"; 	// (0, 0, 0) with color RGB(255, 0, 0)
-	outp << "\n1 0 0 0 255 0";  // (1, 0, 0) with color RGB(0, 255, 0)
-	outp << "\n1 1 0 0 0 255";  // (1, 1, 0) with color RGB(0, 0, 255)
-	outp << "\n0 1 0 255 255 0"; // (0, 1, 0) with color RGB(255, 255, 0); 
-	outp << "\n0 0 1 255 0 255"; 	// (0, 0, 1) with color RGB(255, 0, 255)
-	outp << "\n1 0 1 0 255 255";  // (1, 0, 1) with color RGB(0, 255, 255)
-	outp << "\n1 1 1 255 255 255";  // (1, 1, 1) with color RGB(255,255,255)
-	outp << "\n0 1 1 0 0 0"; // (0, 1, 1) with color RGB(0, 0, 0); 
+    // go through every point in your data struct and output x, y, z, R, G, B
+    for (size_t i = 0; i < data.size; i++) {
+        struct point &ppoint = data.point[i];
+        struct color color = { 32, 32, 32 }; // Gray color
 
-	// go through every point in your data struct and output x, y, z, R, G, B
+        for (houghPlane plane : results.planes) {
+            double rho = ppoint.x * cos(plane.theta) * sin(plane.phi) +
+                         ppoint.y * sin(plane.theta) * sin(plane.phi) +
+                         ppoint.z * cos(plane.phi);
+
+            if (abs(rho - plane.rho) < votes.d_rho) {
+                color.R = 255 * cos(plane.theta) * sin(plane.phi) + 0.5;
+                color.G = 255 * sin(plane.theta) * sin(plane.phi) + 0.5;
+                color.B = 255 * cos(plane.phi) + 0.5;
+                break;
+            }
+        }
+        outp << "\n" << ppoint.x << " " << ppoint.y << " "<< ppoint.z;
+        outp << " " << color.R << " " << color.G << " " << color.B;
+    }
 
 	outp.close(); 
 
