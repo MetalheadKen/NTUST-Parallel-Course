@@ -53,13 +53,14 @@ double centerPointCloudToOrigin(mydata &data) {
     for (size_t i = 1; i < data.size; ++i) {
         struct point &ppoint = data.point[i];
 
-        if (ppoint.x > max.x) max.x = ppoint.x;
-        if (ppoint.y > max.y) max.y = ppoint.y;
-        if (ppoint.z > max.z) max.z = ppoint.z;
+        if (ppoint.x > max.x)      { max.x = ppoint.x; }
+        else if (ppoint.x < min.x) { min.x = ppoint.x; }
 
-        if (ppoint.x < min.x) min.x = ppoint.x;
-        if (ppoint.y < min.y) min.y = ppoint.y;
-        if (ppoint.z < min.z) min.z = ppoint.z;
+        if (ppoint.y > max.y)      { max.y = ppoint.y; }
+        else if (ppoint.y < min.y) { min.y = ppoint.y; }
+        
+        if (ppoint.z > max.z)      { max.z = ppoint.z; }
+        else if (ppoint.z < min.z) { min.z = ppoint.z; }
     }
 
     // Center the point-cloud data so that the center of the AABB is at the origin
@@ -76,7 +77,12 @@ double centerPointCloudToOrigin(mydata &data) {
     }
 
     // Get maximum possible rho
-    double max_rho = sqrt(pow(0.5 * (max.x - min.x), 2) + pow(0.5 * (max.y - min.y), 2) + pow(0.5 * (max.z - min.z), 2));
+    struct point diff;
+    diff.x = 0.5 * (max.x - min.x);
+    diff.y = 0.5 * (max.y - min.y);
+    diff.z = 0.5 * (max.z - min.z);
+
+    double max_rho = sqrt(diff.x * diff.x + diff.y * diff.y + diff.z * diff.z);
 
 	return max_rho; 
 }
@@ -95,9 +101,9 @@ void prepareAccumulator(accumulator &votes, const double rho_max, const size_t n
 
     size_t ***accum = new size_t **[n_theta]();
 
-    for (size_t i = 0; i < n_theta; i++) {
+    for (size_t i = 0; i < n_theta; ++i) {
         accum[i] = new size_t *[n_phi]();
-        for (size_t j = 0; j < n_phi; j++) {
+        for (size_t j = 0; j < n_phi; ++j) {
             accum[i][j] = new size_t [n_rho]();
         }
     }
@@ -106,8 +112,8 @@ void prepareAccumulator(accumulator &votes, const double rho_max, const size_t n
 
 // This function release the allocated memory for the accumulator votes.
 void releaseAccumulator(accumulator &votes) {
-    for (size_t i = 0; i < votes.n_theta; i++) {
-        for (size_t j = 0; j < votes.n_phi; j++) {
+    for (size_t i = 0; i < votes.n_theta; ++i) {
+        for (size_t j = 0; j < votes.n_phi; ++j) {
             delete [] votes.accum[i][j];
         }
         delete [] votes.accum[i];
@@ -118,15 +124,23 @@ void releaseAccumulator(accumulator &votes) {
 // This function conducts the Hough Transform to cast votes in the rho, theta, phi parametric space.
 void houghTransform(const mydata &data, accumulator &votes) {
     double theta, phi, rho;
+    double cos_theta, sin_theta;
+    double cos_phi, sin_phi;
 
-    for (size_t i = 0; i < votes.n_theta; i++) {
+    for (size_t i = 0; i < votes.n_theta; ++i) {
         theta = (double) i * votes.d_theta;
-        for (size_t j = 0; j < votes.n_phi; j++) {
+        cos_theta = cos(theta);
+        sin_theta = sin(theta);
+
+        for (size_t j = 0; j < votes.n_phi; ++j) {
             phi = (double) j * votes.d_phi;
-            for (size_t pos = 0; pos < data.size; pos++) {
-                rho = data.point[pos].x * cos(theta) * sin(phi) + 
-                      data.point[pos].y * sin(theta) * sin(phi) + 
-                      data.point[pos].z * cos(phi);
+            cos_phi = cos(phi);
+            sin_phi = sin(phi);
+
+            for (size_t pos = 0; pos < data.size; ++pos) {
+                rho = data.point[pos].x * cos_theta * sin_phi + 
+                      data.point[pos].y * sin_theta * sin_phi + 
+                      data.point[pos].z * cos_phi;
 
                 int k = (int) ((rho + votes.rho_max) / votes.d_rho);
                 votes.accum[i][j][k]++;
@@ -141,9 +155,9 @@ static inline bool compare(houghPlane planeA, houghPlane planeB) {
 
 // find votes that are larger than threshold and store its parameters into the results data struct
 void identifyPlaneParameters(const accumulator& votes, const size_t threshold, houghPlanes &results) {
-    for (size_t i = 0; i < votes.n_theta; i++) {
-        for (size_t j = 0; j < votes.n_phi; j++) {
-            for (size_t k = 0; k < votes.n_rho; k++) {
+    for (size_t i = 0; i < votes.n_theta; ++i) {
+        for (size_t j = 0; j < votes.n_phi; ++j) {
+            for (size_t k = 0; k < votes.n_rho; ++k) {
                 if (votes.accum[i][j][k] > threshold) {
                     houghPlane plane;
 
@@ -184,19 +198,25 @@ bool outputPtxFile(const mydata& data, const houghPlanes &results, const accumul
 		<< "\nend_header";
 
     // go through every point in your data struct and output x, y, z, R, G, B
-    for (size_t i = 0; i < data.size; i++) {
+    for (size_t i = 0; i < data.size; ++i) {
         struct point &ppoint = data.point[i];
         struct color color = { 32, 32, 32 }; // Gray color
 
         for (houghPlane plane : results.planes) {
-            double rho = ppoint.x * cos(plane.theta) * sin(plane.phi) +
-                         ppoint.y * sin(plane.theta) * sin(plane.phi) +
-                         ppoint.z * cos(plane.phi);
+            double cos_theta = cos(plane.theta);
+            double sin_theta = sin(plane.theta);
+
+            double cos_phi = cos(plane.phi);
+            double sin_phi = sin(plane.phi);
+
+            double rho = ppoint.x * cos_theta * sin_phi +
+                         ppoint.y * sin_theta * sin_phi +
+                         ppoint.z * cos_phi;
 
             if (abs(rho - plane.rho) < votes.d_rho) {
-                color.R = 255 * cos(plane.theta) * sin(plane.phi) + 0.5;
-                color.G = 255 * sin(plane.theta) * sin(plane.phi) + 0.5;
-                color.B = 255 * cos(plane.phi) + 0.5;
+                color.R = 255 * cos_theta * sin_phi;
+                color.G = 255 * sin_theta * sin_phi;
+                color.B = 255 * cos_phi;
                 break;
             }
         }
