@@ -60,6 +60,7 @@ int main(int argc, char **argv) {
 	for (auto &i : t) {
 		cout << i.elapsedTime() << ", "; 
 	}
+    cout << endl;
 
 	// task 10 - release all allocated memory
 	releaseHoughPlanes(results); 
