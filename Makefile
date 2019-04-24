@@ -23,4 +23,4 @@ test: aos.exe soa.exe p1.exe p2.exe p3.exe p4.exe p5.exe p6.exe
 
 clean: 
 	@echo Cleanup artifacts 
-	@-rm *.exe *.o *.ply >& /dev/null
+	@-rm *.exe *.o *.ply >/dev/null 2>&1
