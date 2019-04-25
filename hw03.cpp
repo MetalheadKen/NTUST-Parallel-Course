@@ -277,7 +277,7 @@ void houghTransform(const mydata &data, accumulator &votes) {
     double cos_theta, sin_theta;
     double cos_phi, sin_phi;
 
-    #pragma omp parallel num_threads(8)
+    #pragma omp parallel //num_threads(32)
     {
         #pragma omp for collapse(3) schedule(auto)
         for (size_t i = 0; i < votes.n_theta; ++i) {
