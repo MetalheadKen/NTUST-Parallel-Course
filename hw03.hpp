@@ -8,7 +8,7 @@
 #elif defined(p1) || defined(p2) || defined(p3) || defined(p4) || defined(p5) || defined(p6)
     #define aos
 #elif defined(best)
-    #define aos
+    #define soa 
     #define p6
 #endif
 

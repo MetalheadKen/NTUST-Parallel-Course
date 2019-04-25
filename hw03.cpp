@@ -72,46 +72,54 @@ double centerPointCloudToOrigin(mydata &data) {
     struct point min = { data.point.x[0], data.point.y[0], data.point.z[0] };
 #endif
 
-    for (size_t i = 1; i < data.size; ++i) {
-    #ifdef aos
-        if (data.point[i].x > max.x)      { max.x = data.point[i].x; }
-        else if (data.point[i].x < min.x) { min.x = data.point[i].x; }
+    #pragma omp parallel
+    {
+        #pragma omp for
+        for (size_t i = 1; i < data.size; ++i) {
+        #ifdef aos
+            if (data.point[i].x > max.x)      { max.x = data.point[i].x; }
+            else if (data.point[i].x < min.x) { min.x = data.point[i].x; }
 
-        if (data.point[i].y > max.y)      { max.y = data.point[i].y; }
-        else if (data.point[i].y < min.y) { min.y = data.point[i].y; }
-        
-        if (data.point[i].z > max.z)      { max.z = data.point[i].z; }
-        else if (data.point[i].z < min.z) { min.z = data.point[i].z; }
-    #endif
-    #ifdef soa
-        if (data.point.x[i] > max.x)      { max.x = data.point.x[i]; }
-        else if (data.point.x[i] < min.x) { min.x = data.point.x[i]; }
+            if (data.point[i].y > max.y)      { max.y = data.point[i].y; }
+            else if (data.point[i].y < min.y) { min.y = data.point[i].y; }
+            
+            if (data.point[i].z > max.z)      { max.z = data.point[i].z; }
+            else if (data.point[i].z < min.z) { min.z = data.point[i].z; }
+        #endif
+        #ifdef soa
+            if (data.point.x[i] > max.x)      { max.x = data.point.x[i]; }
+            else if (data.point.x[i] < min.x) { min.x = data.point.x[i]; }
 
-        if (data.point.y[i] > max.y)      { max.y = data.point.y[i]; }
-        else if (data.point.y[i] < min.y) { min.y = data.point.y[i]; }
-        
-        if (data.point.z[i] > max.z)      { max.z = data.point.z[i]; }
-        else if (data.point.z[i] < min.z) { min.z = data.point.z[i]; }
-    #endif
+            if (data.point.y[i] > max.y)      { max.y = data.point.y[i]; }
+            else if (data.point.y[i] < min.y) { min.y = data.point.y[i]; }
+            
+            if (data.point.z[i] > max.z)      { max.z = data.point.z[i]; }
+            else if (data.point.z[i] < min.z) { min.z = data.point.z[i]; }
+        #endif
+        }
     }
 
-    // Center the point-cloud data so that the center of the AABB is at the origin
+     // Center the point-cloud data so that the center of the AABB is at the origin
     struct point AABB;
     AABB.x = 0.5 * (min.x + max.x);
     AABB.y = 0.5 * (min.y + max.y);
     AABB.z = 0.5 * (min.z + max.z);
 
-    for (size_t i = 0; i < data.size; ++i) {
-    #ifdef aos
-        data.point[i].x -= AABB.x;
-        data.point[i].y -= AABB.y;
-        data.point[i].z -= AABB.z;
-    #endif
-    #ifdef soa 
-        data.point.x[i] -= AABB.x;
-        data.point.y[i] -= AABB.y;
-        data.point.z[i] -= AABB.z;
-    #endif
+    #pragma omp parallel
+    {
+        #pragma omp for
+        for (size_t i = 0; i < data.size; ++i) {
+        #ifdef aos
+            data.point[i].x -= AABB.x;
+            data.point[i].y -= AABB.y;
+            data.point[i].z -= AABB.z;
+        #endif
+        #ifdef soa 
+            data.point.x[i] -= AABB.x;
+            data.point.y[i] -= AABB.y;
+            data.point.z[i] -= AABB.z;
+        #endif
+        }
     }
 
     // Get maximum possible rho
@@ -269,47 +277,51 @@ void houghTransform(const mydata &data, accumulator &votes) {
     double cos_theta, sin_theta;
     double cos_phi, sin_phi;
 
-    for (size_t i = 0; i < votes.n_theta; ++i) {
-        theta = (double) i * votes.d_theta;
-        cos_theta = cos(theta);
-        sin_theta = sin(theta);
+    #pragma omp parallel num_threads(8)
+    {
+        #pragma omp for collapse(3) schedule(auto)
+        for (size_t i = 0; i < votes.n_theta; ++i) {
+            for (size_t j = 0; j < votes.n_phi; ++j) {
+                for (size_t pos = 0; pos < data.size; ++pos) {
+                    theta = (double) i * votes.d_theta;
+                    cos_theta = cos(theta);
+                    sin_theta = sin(theta);
 
-        for (size_t j = 0; j < votes.n_phi; ++j) {
-            phi = (double) j * votes.d_phi;
-            cos_phi = cos(phi);
-            sin_phi = sin(phi);
+                    phi = (double) j * votes.d_phi;
+                    cos_phi = cos(phi);
+                    sin_phi = sin(phi);
 
-            for (size_t pos = 0; pos < data.size; ++pos) {
-            #ifdef aos
-                rho = data.point[pos].x * cos_theta * sin_phi + 
-                      data.point[pos].y * sin_theta * sin_phi + 
-                      data.point[pos].z * cos_phi;
-            #endif
-            #ifdef soa
-                rho = data.point.x[pos] * cos_theta * sin_phi + 
-                      data.point.y[pos] * sin_theta * sin_phi + 
-                      data.point.z[pos] * cos_phi;
-            #endif
+                #ifdef aos
+                    rho = data.point[pos].x * cos_theta * sin_phi + 
+                          data.point[pos].y * sin_theta * sin_phi + 
+                          data.point[pos].z * cos_phi;
+                #endif
+                #ifdef soa
+                    rho = data.point.x[pos] * cos_theta * sin_phi + 
+                          data.point.y[pos] * sin_theta * sin_phi + 
+                          data.point.z[pos] * cos_phi;
+                #endif
 
-                int k = (int) ((rho + votes.rho_max) / votes.d_rho);
-            #ifdef p1
-                votes.accum[k][i][j]++;
-            #endif
-            #ifdef p2
-                votes.accum[k][j][i]++;
-            #endif
-            #ifdef p3
-                votes.accum[i][k][j]++;
-            #endif
-            #ifdef p4
-                votes.accum[i][j][k]++;
-            #endif
-            #ifdef p5
-                votes.accum[j][k][i]++;
-            #endif
-            #ifdef p6
-                votes.accum[j][i][k]++;
-            #endif
+                    int k = (int) ((rho + votes.rho_max) / votes.d_rho);
+                #ifdef p1
+                    votes.accum[k][i][j]++;
+                #endif
+                #ifdef p2
+                    votes.accum[k][j][i]++;
+                #endif
+                #ifdef p3
+                    votes.accum[i][k][j]++;
+                #endif
+                #ifdef p4
+                    votes.accum[i][j][k]++;
+                #endif
+                #ifdef p5
+                    votes.accum[j][k][i]++;
+                #endif
+                #ifdef p6
+                    votes.accum[j][i][k]++;
+                #endif
+                }
             }
         }
     }
@@ -321,85 +333,96 @@ static inline bool compare(houghPlane planeA, houghPlane planeB) {
 
 // find votes that are larger than threshold and store its parameters into the results data struct
 void identifyPlaneParameters(const accumulator& votes, const size_t threshold, houghPlanes &results) {
-    for (size_t i = 0; i < votes.n_theta; ++i) {
-        for (size_t j = 0; j < votes.n_phi; ++j) {
-            for (size_t k = 0; k < votes.n_rho; ++k) {
-            #ifdef p1
-                if (votes.accum[k][i][j] > threshold) {
-                    houghPlane plane;
+    //#pragma omp parallel shared(results)
+    {
+        //#pragma omp for
+        for (size_t i = 0; i < votes.n_theta; ++i) {
+            for (size_t j = 0; j < votes.n_phi; ++j) {
+                for (size_t k = 0; k < votes.n_rho; ++k) {
+                #ifdef p1
+                    if (votes.accum[k][i][j] > threshold) {
+                        houghPlane plane;
 
-                    plane.theta = (double) i * votes.d_theta;
-                    plane.phi = (double) j * votes.d_phi;
-                    plane.rho = (double) k * votes.d_rho - votes.rho_max;
-                    plane.votes = votes.accum[k][i][j];
+                        plane.theta = (double) i * votes.d_theta;
+                        plane.phi = (double) j * votes.d_phi;
+                        plane.rho = (double) k * votes.d_rho - votes.rho_max;
+                        plane.votes = votes.accum[k][i][j];
 
-                    results.planes.push_back(plane);
+                        //#pragma omp critical
+                        results.planes.push_back(plane);
+                    }
+                #endif
+                #ifdef p2
+                    if (votes.accum[k][j][i] > threshold) {
+                        houghPlane plane;
+
+                        plane.theta = (double) i * votes.d_theta;
+                        plane.phi = (double) j * votes.d_phi;
+                        plane.rho = (double) k * votes.d_rho - votes.rho_max;
+                        plane.votes = votes.accum[k][j][i];
+
+                        //#pragma omp critical
+                        results.planes.push_back(plane);
+                    }
+                #endif
+                #ifdef p3
+                    if (votes.accum[i][k][j] > threshold) {
+                        houghPlane plane;
+
+                        plane.theta = (double) i * votes.d_theta;
+                        plane.phi = (double) j * votes.d_phi;
+                        plane.rho = (double) k * votes.d_rho - votes.rho_max;
+                        plane.votes = votes.accum[i][k][j];
+
+                        //#pragma omp critical
+                        results.planes.push_back(plane);
+                    }
+                #endif
+                #ifdef p4
+                    if (votes.accum[i][j][k] > threshold) {
+                        houghPlane plane;
+
+                        plane.theta = (double) i * votes.d_theta;
+                        plane.phi = (double) j * votes.d_phi;
+                        plane.rho = (double) k * votes.d_rho - votes.rho_max;
+                        plane.votes = votes.accum[i][j][k];
+
+                        //#pragma omp critical
+                        results.planes.push_back(plane);
+                    }
+                #endif
+                #ifdef p5
+                    if (votes.accum[j][k][i] > threshold) {
+                        houghPlane plane;
+
+                        plane.theta = (double) i * votes.d_theta;
+                        plane.phi = (double) j * votes.d_phi;
+                        plane.rho = (double) k * votes.d_rho - votes.rho_max;
+                        plane.votes = votes.accum[j][k][i];
+
+                        //#pragma omp critical
+                        results.planes.push_back(plane);
+                    }
+                #endif
+                #ifdef p6
+                    if (votes.accum[j][i][k] > threshold) {
+                        houghPlane plane;
+
+                        plane.theta = (double) i * votes.d_theta;
+                        plane.phi = (double) j * votes.d_phi;
+                        plane.rho = (double) k * votes.d_rho - votes.rho_max;
+                        plane.votes = votes.accum[j][i][k];
+
+                        //#pragma omp critical
+                        results.planes.push_back(plane);
+                    }
+                #endif
                 }
-            #endif
-            #ifdef p2
-                if (votes.accum[k][j][i] > threshold) {
-                    houghPlane plane;
-
-                    plane.theta = (double) i * votes.d_theta;
-                    plane.phi = (double) j * votes.d_phi;
-                    plane.rho = (double) k * votes.d_rho - votes.rho_max;
-                    plane.votes = votes.accum[k][j][i];
-
-                    results.planes.push_back(plane);
-                }
-            #endif
-            #ifdef p3
-                if (votes.accum[i][k][j] > threshold) {
-                    houghPlane plane;
-
-                    plane.theta = (double) i * votes.d_theta;
-                    plane.phi = (double) j * votes.d_phi;
-                    plane.rho = (double) k * votes.d_rho - votes.rho_max;
-                    plane.votes = votes.accum[i][k][j];
-
-                    results.planes.push_back(plane);
-                }
-            #endif
-            #ifdef p4
-                if (votes.accum[i][j][k] > threshold) {
-                    houghPlane plane;
-
-                    plane.theta = (double) i * votes.d_theta;
-                    plane.phi = (double) j * votes.d_phi;
-                    plane.rho = (double) k * votes.d_rho - votes.rho_max;
-                    plane.votes = votes.accum[i][j][k];
-
-                    results.planes.push_back(plane);
-                }
-            #endif
-            #ifdef p5
-                if (votes.accum[j][k][i] > threshold) {
-                    houghPlane plane;
-
-                    plane.theta = (double) i * votes.d_theta;
-                    plane.phi = (double) j * votes.d_phi;
-                    plane.rho = (double) k * votes.d_rho - votes.rho_max;
-                    plane.votes = votes.accum[j][k][i];
-
-                    results.planes.push_back(plane);
-                }
-            #endif
-            #ifdef p6
-                if (votes.accum[j][i][k] > threshold) {
-                    houghPlane plane;
-
-                    plane.theta = (double) i * votes.d_theta;
-                    plane.phi = (double) j * votes.d_phi;
-                    plane.rho = (double) k * votes.d_rho - votes.rho_max;
-                    plane.votes = votes.accum[j][i][k];
-
-                    results.planes.push_back(plane);
-                }
-            #endif
             }
         }
     }
 
+    //#pragma omp single
     // sort planes vector ordered by votes in descending order
     sort(results.planes.begin(), results.planes.end(), compare);
 }
