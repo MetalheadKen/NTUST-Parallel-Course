@@ -1,11 +1,9 @@
-all: aos.exe soa.exe p1.exe p2.exe p3.exe p4.exe p5.exe p6.exe best.exe
+.PHONY: all clean test best
 
-
-.PHONY: all clean test
-
+all: aos.exe soa.exe p1.exe p2.exe p3.exe p4.exe p5.exe p6.exe
 
 CC=g++ 
-CFLAGS=-O2 -Wall -march=native
+CFLAGS=-O2 -Wall -march=native -fopenmp
 
 stopwatch.o: stopwatch.cpp
 	$(CC) $(CFLAGS) -c $< -o $@
