@@ -1,6 +1,6 @@
 .PHONY: all clean test best
 
-all: aos.exe soa.exe p1.exe p2.exe p3.exe p4.exe p5.exe p6.exe
+all: aos.exe soa.exe p1.exe p2.exe p3.exe p4.exe p5.exe p6.exe best.exe
 
 CC=g++ 
 CFLAGS=-O2 -Wall -march=native -fopenmp
