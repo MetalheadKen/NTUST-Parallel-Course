@@ -12,7 +12,16 @@ void toEdge(const outputImage &input, outputImage &output);
 
 // design your own accumulator struct to store parameters, voting results, and identified circles
 struct accumulator {
+    size_t *accum;
 
+    int width, height, nRadii;
+
+    uint32_t r_min;
+    uint32_t r_max;
+    uint32_t r_step;
+
+    uint8_t pixel_threshold;
+    double threshold;
 }; 
 
 // prepare the accumulator struct
