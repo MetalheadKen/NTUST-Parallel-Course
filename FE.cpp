@@ -160,7 +160,9 @@ uint32_t extractCircles(accumulator& votes, circles& circles) {
 
         is_merge[i] = true;
         auto c1 = votes.circles[i];
+
         std::vector<circle> similar;
+        similar.push_back(c1);
 
         for (uint32_t j = 0; j < votes.circles.size(); j++) {
             if (is_merge[j]) continue;
@@ -175,14 +177,19 @@ uint32_t extractCircles(accumulator& votes, circles& circles) {
             }
         }
 
-        int size = similar.size();
         struct circle sum = { 0 };
         for (const auto& c : similar) {
-            sum.x     += c.x / size;
-            sum.y     += c.y / size;
-            sum.r     += c.r / size;
-            sum.votes += c.votes / size;
+            sum.x     += c.x;
+            sum.y     += c.y;
+            sum.r     += c.r;
+            sum.votes += c.votes;
         }
+
+        int size = similar.size();
+        sum.x     /= size;
+        sum.y     /= size;
+        sum.r     /= size;
+        sum.votes /= size;
 
         circles.data.push_back({sum.x, sum.y, sum.r, sum.votes});
     }
