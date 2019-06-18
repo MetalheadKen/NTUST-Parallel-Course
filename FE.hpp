@@ -1,4 +1,5 @@
 #pragma once 
+#include <vector>
 #include "PNGio.hpp"
 
 // Read PNG image file specified by the filename and store the image into inputImage struct called png.
@@ -11,10 +12,17 @@ void toGrayScale(const inputImage& input, outputImage &output);
 void toEdge(const outputImage &input, outputImage &output); 
 
 // design your own accumulator struct to store parameters, voting results, and identified circles
+struct circle {
+    uint32_t x;
+    uint32_t y;
+    uint32_t r;
+    uint32_t votes;
+};
+
 struct accumulator {
     size_t *accum;
 
-    int width, height, nRadii;
+    uint32_t width, height, nRadii;
 
     uint32_t r_min;
     uint32_t r_max;
@@ -22,6 +30,8 @@ struct accumulator {
 
     uint8_t pixel_threshold;
     double threshold;
+
+    std::vector<circle> circles;
 }; 
 
 // prepare the accumulator struct
