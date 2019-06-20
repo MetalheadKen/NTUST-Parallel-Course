@@ -149,7 +149,7 @@ uint32_t CHT(const outputImage &input, accumulator& votes) {
 
 uint32_t extractCircles(accumulator& votes, circles& circles) {
     const int diff_dist = 20;
-    bool *is_merge = new bool [votes.circles.size()];
+    bool *is_merge = new bool [votes.circles.size()]();
 
     // Find the similar circle and only pick one of them
     for (uint32_t i = 0; i < votes.circles.size(); i++) {
@@ -166,9 +166,9 @@ uint32_t extractCircles(accumulator& votes, circles& circles) {
 
             auto c2 = votes.circles[j];
 
-            if (abs(c1.x - c2.x) < diff_dist && 
-                abs(c1.y - c2.y) < diff_dist &&
-                abs(c1.r - c2.r) < diff_dist) {
+            if (abs((int32_t) c1.x - (int32_t) c2.x) < diff_dist && 
+                abs((int32_t) c1.y - (int32_t) c2.y) < diff_dist &&
+                abs((int32_t) c1.r - (int32_t) c2.r) < diff_dist) {
                 is_merge[j] = true;
                 similar.push_back(c2);
             }
