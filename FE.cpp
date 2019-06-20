@@ -102,7 +102,7 @@ uint32_t CHT(const outputImage &input, accumulator& votes) {
                     _vote(votes, x - radii, y, r, total_votes);
                     _vote(votes, x + radii, y, r, total_votes);
 
-                    for (uint32_t dy = 1; dy < 0.71 * radii; dy++) {
+                    for (uint32_t dy = 1; dy < 0.71 * radii; dy += 8) {
                         const uint32_t dx = radii * sqrt(1.0 - (double) dy * dy / (radii * radii));
 
                         _vote(votes, x - dx, y - dy, r, total_votes);
