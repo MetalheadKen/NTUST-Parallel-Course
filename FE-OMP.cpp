@@ -2,7 +2,6 @@
 #include "PNGio.hpp"
 #include <cmath>
 #include <iostream>
-#include <algorithm>
 using std::cout; 
 // 
 int readImage(const char *filename, inputImage &png) {
@@ -15,7 +14,7 @@ void toGrayScale(const inputImage& input, outputImage &output) {
     output.height = input.height; 
     output.pixels = new png_byte[output.width * output.height]; 
 
-    #pragma omp parallel for default(none) firstprivate(input) shared(output) collapse(2)
+    #pragma omp parallel for default(none) firstprivate(input) shared(output) //collapse(2)
     for(int y = 0; y < input.height; ++y) {
         for(int x = 0; x < input.width; ++x) {
             unsigned char r = input.row_pointers[y][4 * x];
@@ -23,7 +22,7 @@ void toGrayScale(const inputImage& input, outputImage &output) {
             unsigned char b = input.row_pointers[y][4 * x + 2];
 
             // Turn RGBA into gray-scale image
-            output.pixels[y*input.width+x] = 0.299 * r + 0.587 * g + 0.114 * b; 
+            output.pixels[y * input.width + x] = 0.299 * r + 0.587 * g + 0.114 * b; 
         }
     }
 }
@@ -84,6 +83,7 @@ void prepareAccumulator (const outputImage &img, uint32_t r_min, uint32_t r_max,
 
 static inline void _vote(accumulator& votes, int x, int y, int r, uint32_t& total) {
     if ((x > 0 && (uint32_t) x < votes.width) && (y > 0 && (uint32_t) y < votes.height)) {
+        //#pragma omp atomic
         votes.accum[y * votes.width + x + r * votes.width * votes.height]++;
         total++;
     }
@@ -145,10 +145,7 @@ uint32_t CHT(const outputImage &input, accumulator& votes) {
                     circle.r     = votes.r_min + r * votes.r_step;
                     circle.votes = votes.accum[pos];
 
-                    #pragma omp critical (dataupdate)
-                    {
-                        votes.circles.push_back(circle);
-                    }
+                    votes.circles.push_back(circle);
                 }
             }
         }
@@ -177,9 +174,9 @@ uint32_t extractCircles(accumulator& votes, circles& circles) {
 
             auto c2 = votes.circles[j];
 
-            if (abs(c1.x - c2.x) < diff_dist && 
-                abs(c1.y - c2.y) < diff_dist &&
-                abs(c1.r - c2.r) < diff_dist) {
+            if (abs((int32_t) c1.x - (int32_t) c2.x) < diff_dist && 
+                abs((int32_t) c1.y - (int32_t) c2.y) < diff_dist &&
+                abs((int32_t) c1.r - (int32_t) c2.r) < diff_dist) {
                 is_merge[j] = true;
                 similar.push_back(c2);
             }
