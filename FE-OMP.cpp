@@ -83,7 +83,7 @@ void prepareAccumulator (const outputImage &img, uint32_t r_min, uint32_t r_max,
 
 static inline void _vote(accumulator& votes, int x, int y, int r, uint32_t& total) {
     if ((x > 0 && (uint32_t) x < votes.width) && (y > 0 && (uint32_t) y < votes.height)) {
-        //#pragma omp atomic
+        #pragma omp atomic
         votes.accum[y * votes.width + x + r * votes.width * votes.height]++;
         total++;
     }
