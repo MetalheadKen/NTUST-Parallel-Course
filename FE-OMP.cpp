@@ -14,7 +14,7 @@ void toGrayScale(const inputImage& input, outputImage &output) {
     output.height = input.height; 
     output.pixels = new png_byte[output.width * output.height]; 
 
-    #pragma omp parallel for default(none) firstprivate(input) shared(output) collapse(2)
+    #pragma omp parallel for default(none) firstprivate(input) shared(output) //collapse(2)
     for(int y = 0; y < input.height; ++y) {
         for(int x = 0; x < input.width; ++x) {
             unsigned char r = input.row_pointers[y][4 * x];
