@@ -5,7 +5,6 @@
 using std::cout; 
 // 
 int readImage(const char *filename, inputImage &png) {
-    cout << "\nCheck readImage in " << __FILE__ << " @ " << __LINE__; 
     // If you are okay with how image data is stored (defined in PNGio.cpp), you can simply use the following line of code for this function
     return pngRead(filename, png); 
 }
@@ -87,7 +86,6 @@ static inline void _vote(accumulator& votes, int x, int y, int r, uint32_t& tota
 }
 
 uint32_t CHT(const outputImage &input, accumulator& votes) {
-    //cout << "\nImplement CHT function in " << __FILE__ << " @ " << __LINE__; 
     uint32_t total_votes = 0;
     
     // for each pixel that are above pixel_threshold, cast votes 
@@ -150,7 +148,6 @@ uint32_t CHT(const outputImage &input, accumulator& votes) {
 }
 
 uint32_t extractCircles(accumulator& votes, circles& circles) {
-    //cout << "\nImplement extractCircles function in " << __FILE__ << " @ " << __LINE__; 
     const int diff_dist = 20;
     bool *is_merge = new bool [votes.circles.size()];
 
@@ -177,6 +174,7 @@ uint32_t extractCircles(accumulator& votes, circles& circles) {
             }
         }
 
+        // Average all circles parameters
         struct circle sum = { 0 };
         for (const auto& c : similar) {
             sum.x     += c.x;
