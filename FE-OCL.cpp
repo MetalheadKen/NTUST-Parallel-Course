@@ -84,15 +84,16 @@ uint32_t CHT(const outputImage &input, accumulator& votes) {
 
     cl::CommandQueue cmdQueue;
     cl::Context context;
+    cl::Device device;
     cl::Program *program;
 
     // Prepare GPU
     try {
-        YoUtil::GPU::verbose = false;
         YoUtil::GPU gpu(CL_DEVICE_TYPE_GPU, false, "");
         gpu.addProgramByFile("FE-OCL", "FE-OCL.cl");
         cmdQueue = gpu.getCommandQueue(0);
         context = cmdQueue.getInfo<CL_QUEUE_CONTEXT>();
+        device = cmdQueue.getInfo<CL_QUEUE_DEVICE>();
         program = gpu.getProgram("FE-OCL"); 
     } catch (cl::Error &e) {
         std::cerr << "CHT: " << e.what() << std::endl;
