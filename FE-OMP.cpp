@@ -109,7 +109,7 @@ uint32_t CHT(const outputImage &input, accumulator& votes) {
                         _vote(votes, x - radii, y, r, total_votes);
                         _vote(votes, x + radii, y, r, total_votes);
 
-                        for (uint32_t dy = 1; dy < 0.71 * radii; dy++) {
+                        for (uint32_t dy = 1; dy < 0.71 * radii; dy += 8) {
                             const uint32_t dx = radii * sqrt(1.0 - (double) dy * dy / (radii * radii));
 
                             _vote(votes, x - dx, y - dy, r, total_votes);
@@ -132,41 +132,28 @@ uint32_t CHT(const outputImage &input, accumulator& votes) {
     // After voting, filter significant votes based on the criterion specified in the instruction of the exam
     // each significant vote becomes an identified circle
     const double vote_threshold = votes.threshold * total_votes / (votes.width * votes.height * votes.nRadii);
-    #pragma omp parallel default(none) firstprivate(input, vote_threshold) shared(votes)
-    {
-        #pragma omp for collapse(3)
-        for (png_uint_32 y = 0; y < input.height; y++) {
-            for (png_uint_32 x = 0; x < input.width; x++) {
-                for (uint32_t r = 0; r < votes.nRadii; r++) {
-                    uint32_t pos = y * input.width + x + r * input.width * input.height;
+    for (png_uint_32 y = 0; y < input.height; y++) {
+        for (png_uint_32 x = 0; x < input.width; x++) {
+            for (uint32_t r = 0; r < votes.nRadii; r++) {
+                uint32_t pos = y * input.width + x + r * input.width * input.height;
 
-                    if (votes.accum[pos] > vote_threshold) {
-                        struct circle circle;
+                if (votes.accum[pos] > vote_threshold) {
+                    struct circle circle;
 
-                        circle.x     = x;
-                        circle.y     = y;
-                        circle.r     = votes.r_min + r * votes.r_step;
-                        circle.votes = votes.accum[pos];
+                    circle.x     = x;
+                    circle.y     = y;
+                    circle.r     = votes.r_min + r * votes.r_step;
+                    circle.votes = votes.accum[pos];
 
-                        #pragma omp critical (dataupdate)
-                        {
-                            votes.circles.push_back(circle);
-                        }
+                    #pragma omp critical (dataupdate)
+                    {
+                        votes.circles.push_back(circle);
                     }
                 }
             }
         }
     }
-
-    sort(votes.circles.begin(), votes.circles.end(),
-        [](const circle& a, const circle& b) {
-            if (a.x == b.x)
-                return a.y > b.y;
-            else
-                return a.x > b.x;
-        }
-    );
-    
+   
     // return the number of identified circles at this stage.
     return votes.circles.size(); 
 }
