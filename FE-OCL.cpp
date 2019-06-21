@@ -96,8 +96,8 @@ uint32_t CHT(const outputImage &input, accumulator& votes) {
         device = cmdQueue.getInfo<CL_QUEUE_DEVICE>();
         program = gpu.getProgram("FE-OCL"); 
     //} catch (cl::Error &e) {
-        std::cerr << "CHT: " << e.what() << std::endl;
-        std::cerr << "Error no: " << e.err() << std::endl;
+        //std::cerr << "CHT: " << e.what() << std::endl;
+        //std::cerr << "Error no: " << e.err() << std::endl;
     //}
 
     cl_uint in_bytes = sizeof(input.pixels[0]) * input.width * input.height;
