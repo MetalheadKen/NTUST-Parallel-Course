@@ -38,7 +38,7 @@ void CHT_vote(
                     _vote(accum, x - dx, y - dy, r, width, height, cnt);
                     _vote(accum, x - dx, y + dy, r, width, height, cnt);
                     _vote(accum, x + dx, y - dy, r, width, height, cnt);
-                    _vote(accum, x + dx, y + dy, r, widht, height, cnt);
+                    _vote(accum, x + dx, y + dy, r, width, height, cnt);
 
                     _vote(accum, x - dy, y - dx, r, width, height, cnt);
                     _vote(accum, x - dy, y + dx, r, width, height, cnt);

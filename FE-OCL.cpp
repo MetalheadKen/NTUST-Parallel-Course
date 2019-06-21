@@ -112,12 +112,12 @@ uint32_t CHT(const outputImage &input, accumulator& votes) {
 
     // Setting kernel arguments
     cl::Kernel kernel(*program, "CHT_vote");
-    kernel.setArg(0, votes.width);
-    kernel.setArg(1, votes.height);
-    kernel.setArg(2, votes.nRadii);
-    kernel.setArg(3, votes.r_min);
-    kernel.setArg(4, votes.r_step);
-    kernel.setArg(5, votes.pixel_threshold);
+    kernel.setArg(0, (cl_uint) votes.width);
+    kernel.setArg(1, (cl_uint) votes.height);
+    kernel.setArg(2, (cl_uint) votes.nRadii);
+    kernel.setArg(3, (cl_uint) votes.r_min);
+    kernel.setArg(4, (cl_uint) votes.r_step);
+    kernel.setArg(5, (cl_uint) votes.pixel_threshold);
     kernel.setArg(6, in_buf);
     kernel.setArg(7, out_buf);
     kernel.setArg(8, cnt_buf);
