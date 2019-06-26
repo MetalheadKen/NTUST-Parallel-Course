@@ -238,7 +238,7 @@ void houghTransform(const mydata &data, accumulator &votes, mygpu& gpu) {
         gpu.cmdQueue.enqueueReadBuffer(gpu.accum_buf, CL_TRUE, 0, bytes, votes.accum);
     #endif 
     #ifdef soa
-        cl::Kernel hough(*gpu.program, "hough_aos");
+        cl::Kernel hough(*gpu.program, "hough_soa");
         hough.setArg(0, (cl_uint) data.size);
         hough.setArg(1, gpu.point_buf);
         hough.setArg(2, (cl_uint) votes.n_theta);
