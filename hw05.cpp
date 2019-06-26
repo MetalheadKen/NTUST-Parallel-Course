@@ -285,17 +285,18 @@ void identifyPlaneParameters(const accumulator& votes, houghPlanes &results, myg
 
 // This function de-allocate memory allocated for planes
 void releaseHoughPlanes(houghPlanes &planes) {
-	cout << "\nDo not forget to implement releaseHoughPlanes! Line " << __LINE__ << "@ " << __FILE__; 
+	//cout << "\nDo not forget to implement releaseHoughPlanes! Line " << __LINE__ << "@ " << __FILE__; 
 }
 
 // task 10 - release allocated memory for point-cloud data
 void release(mydata& data) {
-	cout << "\nDo not forget to implement release! Line " << __LINE__ << "@ " << __FILE__; 
+	//cout << "\nDo not forget to implement release! Line " << __LINE__ << "@ " << __FILE__; 
+    delete [] data.point;
 }
 
 // Task 8a - Output transformed point cloud data
 bool outputPtxFile(const mydata& data, const houghPlanes &results, const accumulator& votes, const char *outputCloudData, mygpu& gpu) {
-	cout << "\nRemeber to complete outputPtxFile! Line " << __LINE__ << "@ " << __FILE__; 
+	//cout << "\nRemeber to complete outputPtxFile! Line " << __LINE__ << "@ " << __FILE__; 
 	ofstream outp(outputCloudData);
 	if (!outp) return false; 
 
