@@ -10,7 +10,7 @@ void prepareGPU(mygpu& gpu) {
 	//cout << "\nDo not forget to implement prepareGPU! Line " << __LINE__ << "@ " << __FILE__; 
     try {
         GPU::verbose = false;
-        gpu.gpu = new GPU(CL_DEVICE_TYPE_GPU, false, "");
+        gpu.gpu = new GPU(CL_DEVICE_TYPE_CPU, false, "");
         gpu.gpu->addProgramByFile("hw05", "hw05.cl");
         gpu.cmdQueue = gpu.gpu->getCommandQueue(0);
         gpu.device = gpu.cmdQueue.getInfo<CL_QUEUE_DEVICE>();
