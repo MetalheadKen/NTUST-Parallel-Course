@@ -23,11 +23,11 @@ YoUtil.o: YoUtil.cpp
 test: aos.exe soa.exe
 	@echo Doing tests
 	./aos.exe set1.pts 36 18 100 set1.ply
-	./aos.exe set2.pts 36 18 100 set1.ply
-	./aos.exe set3.pts 36 18 100 set1.ply
-	./aos.exe set4.pts 36 18 100 set1.ply
-	./aos.exe set5.pts 36 18 100 set1.ply
-	./aos.exe set6.pts 36 18 100 set1.ply
+	./aos.exe set2.pts 36 18 100 set2.ply
+	./aos.exe set3.pts 36 18 100 set3.ply
+	./aos.exe set4.pts 36 18 100 set4.ply
+	./aos.exe set5.pts 36 18 100 set5.ply
+	./aos.exe set6.pts 36 18 100 set6.ply
 
 clean: 
 	@echo Cleanup artifacts 

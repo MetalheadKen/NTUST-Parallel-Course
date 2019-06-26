@@ -1,7 +1,7 @@
 #pragma OPENCL EXTENSION cl_khr_int64_base_atomics : enable
 #pragma OPENCL EXTENSION cl_khr_fp64 : enable
 
-void Atomic_Max(volatile __global cl_double *src, cl_double val) {
+void Atomic_Max(volatile __global double *src, double val) {
     union {
         unsigned int intVal;
         double doubleVal;
@@ -10,10 +10,10 @@ void Atomic_Max(volatile __global cl_double *src, cl_double val) {
     do {
         prevVal.doubleVal = *src;
         newVal.doubleVal = max(prevVal.doubleVal, val);
-    } while (atomic_cmpxchg((volatile __global unsigned int *) src, prevVal.intVal, newVal.intVal != prevVal.intVal);
+    } while (atomic_cmpxchg((volatile __global unsigned int *) src, prevVal.intVal, newVal.intVal) != prevVal.intVal);
 }
 
-void Atomic_Min(volatile __global cl_double *src, cl_double val) {
+void Atomic_Min(volatile __global double *src, double val) {
     union {
         unsigned int intVal;
         double doubleVal;
@@ -22,12 +22,12 @@ void Atomic_Min(volatile __global cl_double *src, cl_double val) {
     do {
         prevVal.doubleVal = *src;
         newVal.doubleVal = min(prevVal.doubleVal, val);
-    } while (atomic_cmpxchg((volatile __global unsigned int *) src, prevVal.intVal, newVal.intVal != prevVal.intVal);
+    } while (atomic_cmpxchg((volatile __global unsigned int *) src, prevVal.intVal, newVal.intVal) != prevVal.intVal);
 }
 
 __kernel
-double maxmin_aos(cl_uint nData, __global cl_double *point, __global cl_double *max, __global cl_double *min) {
-    cl_uint i = get_global_id(0);
+void maxmin_aos(uint nData, __global double *point, __global double *max, __global double *min) {
+    uint i = get_global_id(0);
 
     if (i < nData) {
         if (point[i * 3    ] > max[0])      { Atomic_Max(&max[0], point[i * 3]); }
@@ -42,8 +42,8 @@ double maxmin_aos(cl_uint nData, __global cl_double *point, __global cl_double *
 }
 
 __kernel
-void maxmin_soa(cl_uint nData, __global cl_double *point, __global cl_double *max, __global cl_double *min) {
-    cl_uint i = get_global_id(0);
+void maxmin_soa(uint nData, __global double *point, __global double *max, __global double *min) {
+    uint i = get_global_id(0);
 
     if (i < nData) {
         if (point[i] > max[0])      { Atomic_Max(&max[0], point[i]); }
@@ -58,8 +58,8 @@ void maxmin_soa(cl_uint nData, __global cl_double *point, __global cl_double *ma
 }
 
 __kernel
-void center_aos(cl_uint nData, __global cl_double *point, __global cl_double *AABB) {
-    cl_uint i = get_global_id(0);
+void center_aos(uint nData, __global double *point, __global double *AABB) {
+    uint i = get_global_id(0);
 
     if (i < nData) {
         point[i * 3] -= AABB[0];
@@ -69,8 +69,8 @@ void center_aos(cl_uint nData, __global cl_double *point, __global cl_double *AA
 }
 
 __kernel
-void center_soa(cl_uint nData, __global cl_double *point, __global cl_double *AABB) {
-    cl_uint i = get_global_id(0);
+void center_soa(uint nData, __global double *point, __global double *AABB) {
+    uint i = get_global_id(0);
 
     if (i < nData) {
         point[i] -= AABB[0];
@@ -79,57 +79,63 @@ void center_soa(cl_uint nData, __global cl_double *point, __global cl_double *AA
     }
 }
 
-void hough_aos(cl_uint nData, __global cl_double *point, cl_uint n_theta, cl_uint n_phi, cl_uint n_rho, 
-        cl_double rho_max, cl_double d_theta, cl_double d_phi, cl_double d_rho, __global cl_uint *accum) {
-    cl_double theta, cos_theta, sin_theta, cos_phi, sin_phi, rho;
-    cl_uint i = get_global_id(0);
-    cl_uint j = get_global_id(1);
+__kernel
+void hough_aos(uint nData, __global double *point, uint n_theta, uint n_phi, uint n_rho, 
+        double rho_max, double d_theta, double d_phi, double d_rho, __global uint *accum) {
+    double theta, phi, rho, cos_theta, sin_theta, cos_phi, sin_phi;
+    uint i = get_global_id(0);
+    uint j = get_global_id(1);
 
     if (i < n_theta) {
         if (j < n_phi) {
-            for (cl_uint pos = 0; pos < nData; ++pos) {
-                theta = (cl_double) i * votes.d_theta;
+            for (uint pos = 0; pos < nData; ++pos) {
+                theta = (double) i * d_theta;
                 cos_theta = cos(theta);
                 sin_theta = sin(theta);
 
-                phi = (cl_double) j * votes.d_phi;
+                phi = (double) j * d_phi;
                 cos_phi = cos(phi);
                 sin_phi = sin(phi);
 
-                rho = data.point[pos * 3    ] * cos_theta * sin_phi + 
-                      data.point[pos * 3 + 1] * sin_theta * sin_phi + 
-                      data.point[pos * 3 + 2] * cos_phi;
+                rho = point[pos * 3    ] * cos_theta * sin_phi + 
+                      point[pos * 3 + 1] * sin_theta * sin_phi + 
+                      point[pos * 3 + 2] * cos_phi;
 
-                cl_uint k = (cl_uint) ((rho + votes.rho_max) / votes.d_rho);
-                votes.accum[i * n_phi * n_rho + j * n_rho + k]++;
+                uint k = (uint) ((rho + rho_max) / d_rho);
+                uint index = i * n_phi * n_rho + j * n_rho + k;
+
+                if (index < n_theta * n_phi * n_rho) {
+                    accum[i * n_phi * n_rho + j * n_rho + k]++;
+                }
             }
         }
     }
 }
 
-void hough_soa(cl_uint nData, __global cl_double *point, cl_uint n_theta, cl_uint n_phi, cl_uint n_rho, 
-        cl_double rho_max, cl_double d_theta, cl_double d_phi, cl_double d_rho, __global cl_uint *accum) {
-    cl_double theta, cos_theta, sin_theta, cos_phi, sin_phi, rho;
-    cl_uint i = get_global_id(0);
-    cl_uint j = get_global_id(1);
+__kernel
+void hough_soa(uint nData, __global double *point, uint n_theta, uint n_phi, uint n_rho, 
+        double rho_max, double d_theta, double d_phi, double d_rho, __global uint *accum) {
+    double theta, phi, rho, cos_theta, sin_theta, cos_phi, sin_phi;
+    uint i = get_global_id(0);
+    uint j = get_global_id(1);
 
     if (i < n_theta) {
         if (j < n_phi) {
-            for (cl_uint pos = 0; pos < nData; ++pos) {
-                theta = (cl_double) i * votes.d_theta;
+            for (uint pos = 0; pos < nData; ++pos) {
+                theta = (double) i * d_theta;
                 cos_theta = cos(theta);
                 sin_theta = sin(theta);
 
-                phi = (cl_double) j * votes.d_phi;
+                phi = (double) j * d_phi;
                 cos_phi = cos(phi);
                 sin_phi = sin(phi);
 
-                rho = data.point[pos            ] * cos_theta * sin_phi + 
-                      data.point[nData + pos    ] * sin_theta * sin_phi + 
-                      data.point[nData * 2 + pos] * cos_phi;
+                rho = point[pos            ] * cos_theta * sin_phi + 
+                      point[nData + pos    ] * sin_theta * sin_phi + 
+                      point[nData * 2 + pos] * cos_phi;
 
-                cl_uint k = (cl_uint) ((rho + votes.rho_max) / votes.d_rho);
-                votes.accum[i * n_phi * n_rho + j * n_rho + k]++;
+                uint k = (uint) ((rho + rho_max) / d_rho);
+                accum[i * n_phi * n_rho + j * n_rho + k]++;
             }
         }
     }
