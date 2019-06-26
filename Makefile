@@ -11,11 +11,14 @@ CFLAGS=-O2 -Wall -march=native
 stopwatch.o: stopwatch.cpp
 	$(CC) $(CFLAGS) -c $< -o $@
 
+YoUtil.o: YoUtil.cpp
+	$(CC) $(CFLAGS) -c $< -o $@
+
 %.o: hw05.cpp 
 	$(CC) $(CFLAGS) -D$(basename $@) -c $< -o $@
 
-%.exe: %.o stopwatch.o
-	$(CC) $(CFLAGS) -D$(basename $@) main.cpp -o $@ $(basename $@).o stopwatch.o 
+%.exe: %.o stopwatch.o YoUtil.o
+	$(CC) $(CFLAGS) -D$(basename $@) main.cpp -o $@ $(basename $@).o stopwatch.o YoUtil.o -lOpenCL
 
 test: aos.exe soa.exe
 	@echo Doing tests

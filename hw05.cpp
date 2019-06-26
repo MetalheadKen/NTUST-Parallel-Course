@@ -70,9 +70,9 @@ bool readPointCloud(const char *filename, mydata& data, mygpu& gpu) {
             data.point[i * 3 + 2] = z;
         #endif
         #ifdef soa
-            data.point.x[i            ] = x;
-            data.point.y[nData + i    ] = y;
-            data.point.z[nData * 2 + i] = z;
+            data.point[i            ] = x;
+            data.point[nData + i    ] = y;
+            data.point[nData * 2 + i] = z;
         #endif
 	}
 	inp.close();
@@ -98,7 +98,7 @@ double centerPointCloudToOrigin(mydata &data, mygpu& gpu) {
         cl::Buffer min_buf(gpu.context, flag, sizeof(min[0]) * 3, min);
     #endif
     #ifdef soa
-        cl_uint bytes = sizeof(data.point.x[0]) * data.size * 3;
+        cl_uint bytes = sizeof(data.point[0]) * data.size * 3;
         gpu.point_buf = cl::Buffer(gpu.context, flag, bytes, data.point);
 
         cl_double max[3] = { data.point[0], data.point[data.size], data.point[data.size * 2] };
