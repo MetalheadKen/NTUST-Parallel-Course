@@ -135,7 +135,11 @@ void hough_soa(uint nData, __global double *point, uint n_theta, uint n_phi, uin
                       point[nData * 2 + pos] * cos_phi;
 
                 uint k = (uint) ((rho + rho_max) / d_rho);
-                accum[i * n_phi * n_rho + j * n_rho + k]++;
+                uint index = i * n_phi * n_rho + j * n_rho + k;
+
+                if (index < n_theta * n_phi * n_rho) {
+                    accum[i * n_phi * n_rho + j * n_rho + k]++;
+                }
             }
         }
     }

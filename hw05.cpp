@@ -164,7 +164,7 @@ double centerPointCloudToOrigin(mydata &data, mygpu& gpu) {
         cl::Kernel center(*gpu.program, "center_soa");
         center.setArg(0, (cl_uint) data.size);
         center.setArg(1, gpu.point_buf);
-        center.setArg(3, AABB_buf);
+        center.setArg(2, AABB_buf);
 
         // Start running kernel
         gpu.cmdQueue.enqueueNDRangeKernel(center, cl::NullRange, global, local);
